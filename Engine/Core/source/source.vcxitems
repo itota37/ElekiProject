@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="Globals">
+    <MSBuildAllProjects Condition="'$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0'">$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <ItemsProjectGuid>{052c71f7-c5b6-4ce0-b726-c61284949324}</ItemsProjectGuid>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ProjectCapability Include="SourceItemsFromImports" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)elekicore\allocation.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)elekicore\component.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)elekicore\datalog.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)elekicore\entity.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)elekicore\hash.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)elekicore\serialization.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)elekicore\string.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)elekicore\tasks.cpp" />
+  </ItemGroup>
+</Project>

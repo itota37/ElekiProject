@@ -1,0 +1,36 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="Globals">
+    <MSBuildAllProjects Condition="'$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0'">$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <ItemsProjectGuid>{132270f4-eb60-4568-b9b6-7920ebe13983}</ItemsProjectGuid>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ProjectCapability Include="SourceItemsFromImports" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)elekicore\allocation.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)elekicore\array.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)elekicore\component.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)elekicore\datalog.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)elekicore\entity.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)elekicore\floatingpoint.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)elekicore\functional.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)elekicore\hash.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)elekicore\integer.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)elekicore\map.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)elekicore\pointer.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)elekicore\preprocess.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)elekicore\serialization.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)elekicore\set.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)elekicore\string.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)elekicore\tasks.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)elekicore\type.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)elekicore\utility.hpp" />
+  </ItemGroup>
+</Project>
