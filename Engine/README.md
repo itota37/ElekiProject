@@ -5,7 +5,7 @@ ElekiEngineメインプロジェクトです。
 ESCアーキテクチャを中心に、ゲーム開発基盤ランタイムを構築します。
 
 ## 各モジュールプロジェクトのファイル構成
-<par>
+
 .
 ├── include
 │   └── "file".hpp
@@ -20,7 +20,7 @@ ESCアーキテクチャを中心に、ゲーム開発基盤ランタイムを�
         └── "configration"
             ├── module_name.dll
             └── module_name.lib
-</par>
+
 includeには公開用ヘッダファイルを置きます。
 sourceにはクロスプラットフォームなソースファイルを置きます。
 resourceにはアイコンなどのファイルを置きます。
