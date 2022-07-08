@@ -14,9 +14,7 @@ ESCアーキテクチャを中心に、ゲーム開発基盤ランタイムを�
 ├── library 'リンクするライブラリを配置します'                                              <br>
 └── build                                                                                <br>
     ├── [project] 'ビルド用プロジェクトのワークスペースです'                                 <br>
-    └── binary                                                                           <br>
-        └── [platform] 'プラットフォーム別にフォルダを用意します'                            <br>
-            └── [configration] 'ReleaseまたはDebugフォルダにビルドされたファイルを配置します' <br>
+    :
 </pre>
 ***
 © 2022 Taichi Ito
