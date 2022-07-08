@@ -1,7 +1,5 @@
 # ElekiProject
-
 ゲームエンジン開発プロジェクト
-
 ## ディレクトリ構成
 <pre>
 ElekiProject
@@ -9,6 +7,5 @@ ElekiProject
 ├── Editor   'エディタ開発プロジェクト'  
 └── Resource '共有リソースディレクトリ'  
 </pre>
-
-***
+---
 © 2022 Taichi Ito
