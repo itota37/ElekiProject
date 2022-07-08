@@ -9,17 +9,17 @@ ESCアーキテクチャを中心に、ゲーム開発基盤ランタイムを�
 <pre>
 [project]                                 <br>
 ├── include                               <br>
-│    └── [include files]...             <br>
+│   └── [include files]...             <br>
 ├── source                                <br>
-│    └── [source files]...              <br>
+│   └── [source files]...              <br>
 ├── resource                              <br>
-│    └── [resource files]...            <br>
+│   └── [resource files]...            <br>
 ├── library                               <br>
-│    └── [library files]...             <br>
+│   └── [library files]...             <br>
 └── build                                 <br>
-     └── [platform]                     <br>
-         └── [configration]          <br>
-             └── [build files]... <br>
+    └── [platform]                     <br>
+        └── [configration]          <br>
+            └── [build files]... <br>
 </pre>
 
 includeには公開用ヘッダファイルを置きます。
