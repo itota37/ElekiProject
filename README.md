@@ -5,9 +5,9 @@
 ## ディレクトリ構成
 <pre>
 ElekiProject
-├── Engine   'ランタイム開発プロジェクト' <br>
-├── Editor   'エディタ開発プロジェクト'   <br>
-└── Resource '共有リソースディレクトリ'   <br>
+├── Engine   'ランタイム開発プロジェクト'  
+├── Editor   'エディタ開発プロジェクト'  
+└── Resource '共有リソースディレクトリ'  
 </pre>
 
 ***
