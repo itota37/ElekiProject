@@ -6,20 +6,19 @@ ESCアーキテクチャを中心に、ゲーム開発基盤ランタイムを�
 
 ## 各モジュールプロジェクトのファイル構成
 
-.
-├── include <br>
-│   └── "file".hpp
-├── source
-│   └── "file".cpp
-├── resource
-│   └── "image".png
-├── library
-│   └── "use_library".lib
-└── build
-    └── "platform"
-        └── "configration"
-            ├── module_name.dll
-            └── module_name.lib
+[project]                        <br>
+├── include                      <br>
+│   └── [include files]...       <br>
+├── source                       <br>
+│   └── [source files]...        <br>
+├── resource                     <br>
+│   └── [resource files]...      <br>
+├── library                      <br>
+│   └── [library files]...       <br>
+└── build                        <br>
+    └── [platform]               <br>
+        └── [configration]       <br>
+            └── [build files]... <br>
 
 includeには公開用ヘッダファイルを置きます。
 sourceにはクロスプラットフォームなソースファイルを置きます。
