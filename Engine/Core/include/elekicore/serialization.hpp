@@ -3,43 +3,29 @@
 /// @copyright © 2022 Taichi Ito
 /// シリアライズ、デシリアライズ機能を提供します
 /// 
-/// ----- ELEKI BINARY データ構造 -----
+/// ElekiBinary構成
+/// -----
 /// 
-/// {
-///     "information" : {
+/// 01 ～ 11 ELEKIBINARY ASC2文字列
+/// 12 ～ 16 バージョン 4バイト整数
+/// 17 ～    データ ARRAYサイン ～ ENDサイン
 /// 
-///         データ
-///           :
-/// 
-///     },
-/// 
-///     "names" : {
-/// 
-///         ID名 : ID
-/// 
-///     },
-/// 
-///     "instances" : [
-/// 
-///         {
-///     
-///             データ
-///               :
-///             REFERENCE : instance_index,
-///               :
-/// 
-///         },
-/// 
-///         {
-/// 
-///             データ
-///               :
-/// 
-///         },
-///           :
-/// 
-///     ]
-/// }
+/// I8サイン     サインの後、符号付き8ビット整数が続きます
+/// U8サイン     サインの後、符号無し8ビット整数が続きます
+/// I16サイン    サインの後、符号付き16ビット整数が続きます
+/// U16サイン    サインの後、符号無し16ビット整数が続きます
+/// I32サイン    サインの後、符号付き32ビット整数が続きます
+/// U32サイン    サインの後、符号無し32ビット整数が続きます
+/// I64サイン    サインの後、符号付き64ビット整数が続きます
+/// U64サイン    サインの後、符号無し64ビット整数が続きます
+/// TRUEサイン   論理値trueを表す
+/// FALSEサイン  論理値falseを表す
+/// NILサイン    nullptrを表す
+/// ARRAYサイン	 ENDサインまでデータが続きます
+/// STRUCTサイン ENDサインまでSTRINGデータとデータのペアが続きます
+/// STRINGサイン ENDサインまでUTF-8文字列が続きます
+/// BINARYサイン サインの後、U32データでサイズが記録され、サイズ分バイナリデータが続きます
+///              バイナリデータの後にBINARYサインが続く場合さらにデータが続き、ENDサインの場合終了します
 /// 
 /// -----
 
@@ -90,6 +76,18 @@ namespace ElekiEngine
 	/// シリアライズ名前空間です
 	namespace Serialization
 	{
+		/// バイナリ情報です
+		struct ELEKICORE_EXPORT BinaryInformation
+		{
+			/// データ形式識別名
+			static const String NAME;
+
+			/// シリアライズバージョンです
+			static constexpr u32 VERSION = 1220701;
+
+			/// 情報サイズ
+			static constexpr size_t SIZE = 16;
+		};
 
 		/// バイナリデータ符号の列挙です
 		enum class EBinarySign: u8
@@ -107,7 +105,6 @@ namespace ElekiEngine
 			U64 = 8,        ///< u64データ8byteが続きます
 			F32 = 9,        ///< f32データ4byteが続きます
 			F64 = 10,       ///< f64データ8byteが続きます
-			CHAR = 11,      ///< charデータ1byteが続きます
 
 			TRUE = 32,      ///< trueの値を表現します
 			FALSE = 33,     ///< falseの値を表現します
@@ -131,11 +128,11 @@ namespace ElekiEngine
 		struct ELEKICORE_EXPORT SerializeInfo
 		{
 
-			Mutex lockFlag;                ///< 排他フラグ
-			List<List<u8> *> binaryList;   ///< バイナリデータ
-			Map<void *, u32> idMap;        ///< アドレスに対応するIDのマップ
-			List<UR<Task<void>>> taskList; ///< タスクリスト
-			Map<String, void*> namedAddressMap;
+			Mutex lockFlag;                 ///< 排他フラグ
+			List<List<u8> *> binaryList;    ///< バイナリデータ
+			Map<void *, u32> indexMap;      ///< 参照先がシリアライズされた位置のマップ
+			List<UR<Task<void>>> taskList;  ///< タスクリスト
+			Map<void *, String> ptrNameMap; ///< 名前付き外部ポインタのマップ
 
 		};
 
@@ -143,8 +140,7 @@ namespace ElekiEngine
 		template<class T>
 		struct ToBinary
 		{
-			void operator()(List<u8> *binary, SerializeInfo &info, const T &value)
-			{}
+			void operator()(List<u8> *binary, SerializeInfo &info, const T &value);
 		};
 
 		/// 数値をバイナリに変換します
@@ -189,7 +185,7 @@ namespace ElekiEngine
 		_ELEKICORE_SERIALIZATION_NUMBER_TO_BINARY(u64, EBinarySign::U64);
 		_ELEKICORE_SERIALIZATION_NUMBER_TO_BINARY(f32, EBinarySign::F32);
 		_ELEKICORE_SERIALIZATION_NUMBER_TO_BINARY(f64, EBinarySign::F64);
-		_ELEKICORE_SERIALIZATION_NUMBER_TO_BINARY(Char, EBinarySign::CHAR);
+		_ELEKICORE_SERIALIZATION_NUMBER_TO_BINARY(Char, EBinarySign::U8);
 		
 		// 論理値をバイナリにシリアライズします
 		template<> struct ToBinary<bool>
@@ -205,18 +201,26 @@ namespace ElekiEngine
 		{
 			void operator()(List<u8> *binary, SerializeInfo &info, const T & value)
 			{
-				u32 id = 0;                      // 参照先ID
+				static const String EMPTY_STRING = TXT("");
+
+				u32 index = 0;                   // 参照先リストのインデクス
+				String name = EMPTY_STRING;      // 名前付きポインタ名
 				{
-					Lock lock(info.lockFlag);       
-					if(info.idMap.contains(&value)) 
+					Lock lock(info.lockFlag);  
+
+					if(info.ptrNameMap.contains(&value))
 					{
-						id = info.idMap[&value]; // 登録済みIDを取得
+						name = info.ptrNameMap[&value]; // 名前付きポインタの名前を取得
+					}
+					else if(info.indexMap.contains(&value)) 
+					{
+						index = info.indexMap[&value];  // 登録済みIDを取得
 					}
 					else
 					{
 						// バイナリデータバッファの追加位置をIDとして取得
-						id = (u32)info.binaryList.count();
-						info.idMap.add(&value, id);
+						index = (u32)info.binaryList.count();
+						info.indexMap.add(&value, index);
 
 						// バイナリデータバッファの追加と登録
 						auto newBinary = new(Memory::allocate(List<u8>)) List<u8>();
@@ -230,7 +234,16 @@ namespace ElekiEngine
 					}
 				}
 				binary->add((u8) EBinarySign::REFERENCE);
-				numberToBinary(binary, id);
+				if(name != EMPTY_STRING)
+				{
+					// ポインタ名でシリアライズ
+					ToBinary<String>{}(binary, info, name);
+				}
+				else
+				{
+					// 参照先インデクスでシリアライズ
+					ToBinary<u32>{}(binary, info, index);
+				}
 			}
 		};
 
@@ -304,6 +317,20 @@ namespace ElekiEngine
 			}
 		};
 
+		/// シリアライズクラスを使いバイナリにシリアライズします
+		template<class T, bool IS_ISERIALIZABLE = std::is_base_of_v<ISerializable, T>>
+		struct SerializableToBinary
+		{
+			void operator()(Serializer &serializer, const T &value);
+		};
+
+		/// シリアライズクラスを使いバイナリにシリアライズします
+		template<class T>
+		struct SerializableToBinary<T, true>
+		{
+			void operator()(Serializer &serializer, const T &value);
+		};
+
 	}
 
 	//
@@ -313,7 +340,28 @@ namespace ElekiEngine
 	/// シリアライザクラスです
 	class ELEKICORE_EXPORT Serializer
 	{
+		List<u8> *mBinary;
+		Serialization::SerializeInfo *mInfo;
 
+	public:
+
+		/// コンストラクタです
+		Serializer(List<u8> *binary, Serialization::SerializeInfo *info);
+
+		/// シリアライズします
+		template<class T>
+		Serializer &operator<<(const T &value)
+		{
+			Serialization::ToBinary<T>{}(mBinary, *mInfo, value);
+			return *this;
+		}
+
+		/// シリアライズします
+		template<class T>
+		Serializer serialize(const T &value)
+		{
+			return ((*this) << value);
+		}
 	};
 
 	/// デシリアライザクラスです
@@ -324,12 +372,99 @@ namespace ElekiEngine
 
 	template<class T>
 	inline void Serializable<T>::serialize(Serializer &serializer, const T &value)
-	{}
+	{
+		// 特殊化してください
+	}
 
 	template<class T>
 	inline void Serializable<T>::deserialize(Deserializer & deserializer, T & value)
-	{}
+	{
+		// 特殊化してください
+	}
 
+	template<class T, bool IS_ISERIALIZABLE>
+	inline void Serialization::SerializableToBinary<T, IS_ISERIALIZABLE>::operator()(Serializer &serializer, const T &value)
+	{
+		// ISerializable継承クラスをシリアライズします
+		auto serializable = dynamic_cast<const ISerializable &>(value);
+		serializable.serialize(serializer);
+	}
+
+	template<class T>
+	inline void Serialization::SerializableToBinary<T, true>::operator()(Serializer &serializer, const T &value)
+	{
+		// 非侵入型Serializable特殊化構造体でシリアライズします
+		Serializable<T>{}.serialize(serializer, value);
+	}
+
+	template<class T>
+	inline void Serialization::ToBinary<T>::operator()(List<u8> *binary, Serialization::SerializeInfo &info, const T &value)
+	{
+		// ISerializable継承クラス、
+		// または、非侵入型Serializable特殊化構造体の
+		// シリアライズ関数を呼び出します
+		binary->add((u8) Serialization::EBinarySign::STRUCT);
+		Serializer serializer(binary, &info);
+		Serialization::SerializableToBinary<T>{}(serializer, value);
+		binary->add((u8) Serialization::EBinarySign::END);
+	}
+
+	// 
+	// シリアライズ関数
+	// -----
+
+	/// バイナリにシリアライズします
+	/// @param value シリアライズ対象
+	/// @param names 非シリアライズ対象のポインタ
+	template<class T>
+	UR<List<u8>> toBinary(const T &value, const Map<void*, String> &names = Map<void *, String>())
+	{
+		
+
+		auto topBinary = new(Memory::allocate(List<u8>)) List<u8>();
+		Serialization::SerializeInfo info;
+		info.binaryList.add(topBinary);
+		info.ptrNameMap = names;
+
+		Serialization::ToBinary<T>{}(topBinary, info, value);
+		for(auto &task : info.taskList) task->marge();
+
+		auto size = Serialization::BinaryInformation::SIZE;
+		List<size_t> startPos;
+		for(auto &binary : info.binaryList)
+		{
+			startPos.add(size);
+			size += binary->count();
+		}
+
+		auto resultBinary = new(Memory::allocate(List<u8>)) List<u8>(size);
+		List<UR<Task<void>>> tasks(size);
+		
+		for(size_t i = 0; i < info.binaryList.count(); i++)
+		{
+			tasks[i] = parallel([&info, &startPos, &resultBinary, i]() {
+				for(size_t j = startPos[i], k = 0; k < info.binaryList[i]->count(); j++)
+				{
+					resultBinary->at(j) = info.binaryList[i]->at(k);
+				}
+			});
+		}
+		
+		for(size_t i = 0; i < Serialization::BinaryInformation::NAME.count(); i++)
+		{
+			resultBinary[i] = Serialization::BinaryInformation::NAME[i];
+		}
+		for(size_t i = Serialization::BinaryInformation::NAME.count(), j = 0; j < sizeof(u32); i++, j++)
+		{
+			resultBinary[i] = ((u8 *) (void *) &Serialization::BinaryInformation::VERSION)[j];
+		}
+
+		for(auto &task : tasks) task->marge();
+
+		for(auto &binary : info.binaryList) Memory::deallocate(binary);
+
+		return UR<List<u8>>(resultBinary);
+	}
 }
 
 #endif // !ELEKICORE_SERIALIZATION_HPP

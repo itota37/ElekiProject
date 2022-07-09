@@ -1,5 +1,4 @@
-// main.cpp
-
+// ElekiCoreTest main.cpp
 
 int main()
 {
