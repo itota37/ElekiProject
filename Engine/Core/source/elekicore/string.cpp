@@ -50,6 +50,7 @@ struct EqualToRawChar
 using StringInfoMap = Map<const Char *, StringInfo *, HashToRawChar, EqualToRawChar>;
 
 StringInfoMap *gStringInfos;      // 文字列情報マップ
+std::mutex gStringInfoLockFlag;   // 文字列情報マップ排他ロックフラグ
 std::once_flag gInitStringInfosF; // initStringInfo初期化フラグ
 void initStringInfos()
 {
@@ -93,13 +94,14 @@ void removeStringInfos(const Char *string)
     Memory::deallocate(info);
 }
 
-// 文字列情報マップから取得します
+// 文字列を接続します
 Char *joinStringInfos(const Char *strL, const Char *strR, size_t &countL, size_t countR, size_t &hashL)
 {
     List<Char> tmpstr(countL + countR + 1);
     for(size_t i = 0; i < countL; i++) tmpstr[i] = strL[i];
     for(size_t i = countL, j = 0; j < countR; i++, j++) tmpstr[i] = strR[j];
     tmpstr[countL + countR + 1] = NULL_CHAR;
+    std::unique_lock<std::mutex> lock(gStringInfoLockFlag);
     auto retstr = setStringInfos(&tmpstr[0], countL, hashL);
     return retstr;
 }
@@ -117,6 +119,7 @@ ElekiEngine::String::String(const Char *string)
     , mCount(0)
     , mHash(0)
 {
+    std::unique_lock<std::mutex> lock(gStringInfoLockFlag);
     mString = setStringInfos(string, mCount, mHash);
 }
 
@@ -126,6 +129,7 @@ ElekiEngine::String::String(const String &string)
     , mCount(0)
     , mHash(0)
 {
+    std::unique_lock<std::mutex> lock(gStringInfoLockFlag);
     mString = setStringInfos(string.mString, mCount, mHash);
 }
 
@@ -135,6 +139,7 @@ ElekiEngine::String::String(String &&string) noexcept
     , mCount(0)
     , mHash(0)
 {
+    std::unique_lock<std::mutex> lock(gStringInfoLockFlag);
     mString = setStringInfos(string.mString, mCount, mHash);
 }
 
@@ -142,6 +147,7 @@ ElekiEngine::String::String(String &&string) noexcept
 String &ElekiEngine::String::operator=(const String &string)
 {
     auto info = gStringInfos->at(mString);
+    std::unique_lock<std::mutex> lock(gStringInfoLockFlag);
     info->refCount -= 1;
     if(!info->refCount)
     {
@@ -155,6 +161,7 @@ String &ElekiEngine::String::operator=(const String &string)
 String &ElekiEngine::String::operator=(String &&string) noexcept
 {
     auto info = gStringInfos->at(mString);
+    std::unique_lock<std::mutex> lock(gStringInfoLockFlag);
     info->refCount -= 1;
     if(!info->refCount)
     {

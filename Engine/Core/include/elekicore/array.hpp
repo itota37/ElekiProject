@@ -619,7 +619,7 @@ namespace ElekiEngine
         /// コンストラクタ
         /// @param list 初期化リスト
         /// @param allocator 使用するアロケータ
-        List(std::initializer_list<T> list, IAllocator *allocator = Memory::allocator)
+        List(std::initializer_list<T> list, IAllocator *allocator = Memory::allocator())
             : List(list.size(), allocator)
         {}
 
