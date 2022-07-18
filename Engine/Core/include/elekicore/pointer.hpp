@@ -138,24 +138,16 @@ namespace ElekiEngine
         }
 
         /// 参照先を取得します
-        T &operator*()
+        T &operator*() const
         {
-            if(!mInfo) printError("null pointer. T &Ref<T>::operator*()");
-            return *(T *) mInfo->pointer;
-        }
-
-        /// 参照先を取得します
-        const T &operator*() const
-        {
-            if(!mInfo) printError("null pointer. const T &Ref<T>::operator*() const");
+            if(!mInfo) printError("null pointer. T &Ref<T>::operator*() const");
             return *(T *) mInfo->pointer;
         }
 
         /// 参照先にアクセスします
-        T *operator->()
+        T *operator->() const noexcept
         {
-            if(!mInfo) printError("null pointer. T *Ref<T>::operator->()");
-            return (T *) mInfo->pointer;
+            return (mInfo ? (T *) mInfo->pointer : nullptr);
         }
 
         /// キャストします
@@ -166,29 +158,16 @@ namespace ElekiEngine
         }
 
         /// 参照先を取得します
-        T &reference()
+        T &reference() const
         {
-            if(!mInfo) printError("null pointer. T &Ref<T>::reference()");
-            return *(T *) mInfo->pointer;
-        }
-
-        /// 参照先を取得します
-        const T &reference() const
-        {
-            if(!mInfo) printError("null pointer. const T &Ref<T>::reference() const");
+            if(!mInfo) printError("null pointer. T &Ref<T>::reference() const");
             return *(T *) mInfo->pointer;
         }
 
         /// 参照先にアクセスします
-        T *pointer()
+        T *pointer() const noexcept
         {
-            return (mInfo ? (T *) mInfo->top : nullptr);
-        }
-
-        /// 参照先にアクセスします
-        const T *pointer() const
-        {
-            return (mInfo ? (T *) mInfo->top : nullptr);
+            return (mInfo ? (T *) mInfo->pointer : nullptr);
         }
 
         /// 参照カウントを返します
@@ -277,15 +256,9 @@ namespace ElekiEngine
         }
 
         /// 参照先にアクセスします
-        void *pointer()
+        void *pointer() const
         {
-            return (mInfo ? (void *) mInfo->top : nullptr);
-        }
-
-        /// 参照先にアクセスします
-        const void *pointer() const
-        {
-            return (mInfo ? (void *) mInfo->top : nullptr);
+            return (mInfo ? (void *) mInfo->pointer : nullptr);
         }
 
         /// 参照カウントを返します
@@ -389,24 +362,16 @@ namespace ElekiEngine
         }
 
         /// 参照先を取得します
-        T &operator*()
+        T &operator*() const
         {
-            if(!mInfo) printError("null pointer. T &UR<T>::operator*()");
-            return *(T *) mInfo->pointer;
-        }
-
-        /// 参照先を取得します
-        const T &operator*() const
-        {
-            if(!mInfo) printError("null pointer. const T &UR<T>::operator*() const");
+            if(!mInfo) printError("null pointer. T &UR<T>::operator*() const");
             return *(T *) mInfo->pointer;
         }
 
         /// 参照先にアクセスします
-        T *operator->()
+        T *operator->() const noexcept
         {
-            if(!mInfo) printError("null pointer. T *UR<T>::operator->()");
-            return (T *) mInfo->pointer;
+            return (mInfo ? (T *) mInfo->pointer : nullptr);
         }
 
         /// キャストします
@@ -429,29 +394,16 @@ namespace ElekiEngine
         }
 
         /// 参照先を取得します
-        T &reference()
+        T &reference() const
         {
-            if(!mInfo) printError("null pointer. T &UR<T>::reference()");
-            return *(T *) mInfo->pointer;
-        }
-
-        /// 参照先を取得します
-        const T &reference() const
-        {
-            if(!mInfo) printError("null pointer. const T &UR<T>::reference() const");
+            if(!mInfo) printError("null pointer. T &UR<T>::reference() const");
             return *(T *) mInfo->pointer;
         }
 
         /// 参照先にアクセスします
-        T *pointer()
+        T *pointer() const noexcept
         {
-            return (mInfo ? (T *) mInfo->top : nullptr);
-        }
-
-        /// 参照先にアクセスします
-        const T *pointer() const
-        {
-            return (mInfo ? (T *) mInfo->top : nullptr);
+            return (mInfo ? (T *) mInfo->pointer : nullptr);
         }
     };
 
@@ -532,15 +484,9 @@ namespace ElekiEngine
         }
 
         /// 参照先にアクセスします
-        void *pointer()
+        void *pointer() const
         {
-            return (mInfo ? (void *) mInfo->top : nullptr);
-        }
-
-        /// 参照先にアクセスします
-        const void *pointer() const
-        {
-            return (mInfo ? (void *) mInfo->top : nullptr);
+            return (mInfo ? (void *) mInfo->pointer : nullptr);
         }
     };
 
@@ -641,24 +587,16 @@ namespace ElekiEngine
         }
 
         /// 参照先を取得します
-        T &operator*()
+        T &operator*() const
         {
-            if(!mInfo) printError("null pointer. T &RC<T>::operator*()");
-            return *(T *) mInfo->pointer;
-        }
-
-        /// 参照先を取得します
-        const T &operator*() const
-        {
-            if(!mInfo) printError("null pointer. const T &RC<T>::operator*() const");
+            if(!mInfo) printError("null pointer. T &RC<T>::operator*() const");
             return *(T *) mInfo->pointer;
         }
 
         /// 参照先にアクセスします
-        T *operator->()
+        T *operator->() const noexcept
         {
-            if(!mInfo) printError("null pointer. T *RC<T>::operator->()");
-            return (T *) mInfo->pointer;
+            return (mInfo ? (T *) mInfo->pointer : nullptr);
         }
 
         /// キャストします
@@ -681,29 +619,16 @@ namespace ElekiEngine
         }
 
         /// 参照先を取得します
-        T &reference()
+        T &reference() const
         {
-            if(!mInfo) printError("null pointer. T &RC<T>::reference()");
-            return *(T *) mInfo->pointer;
-        }
-
-        /// 参照先を取得します
-        const T &reference() const
-        {
-            if(!mInfo) printError("null pointer. const T &RC<T>::reference() const");
+            if(!mInfo) printError("null pointer. T &RC<T>::reference() const");
             return *(T *) mInfo->pointer;
         }
 
         /// 参照先にアクセスします
-        T *pointer()
+        T *pointer() const
         {
-            return (mInfo ? (T *) mInfo->top : nullptr);
-        }
-
-        /// 参照先にアクセスします
-        const T *pointer() const
-        {
-            return (mInfo ? (T *) mInfo->top : nullptr);
+            return (mInfo ? (T *) mInfo->pointer : nullptr);
         }
 
         /// 参照カウントを返します
@@ -789,15 +714,9 @@ namespace ElekiEngine
         }
         
         /// 参照先にアクセスします
-        void *pointer()
+        void *pointer() const
         {
-            return (mInfo ? (void *) mInfo->top : nullptr);
-        }
-
-        /// 参照先にアクセスします
-        const void *pointer() const
-        {
-            return (mInfo ? (void *) mInfo->top : nullptr);
+            return (mInfo ? (void *) mInfo->pointer : nullptr);
         }
 
         /// 参照カウントを返します

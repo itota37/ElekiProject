@@ -55,7 +55,7 @@ namespace ElekiEngine
 	/// バイナリデータクラスです
 	class ELEKICORE_EXPORT Binary: public List<u8>
 	{
-
+	public:
 		/// コンストラクタ
 		/// @param count 初期要素数
 		/// @param allocator 使用するアロケータ
@@ -104,6 +104,9 @@ namespace ElekiEngine
 		const u8 &operator[](size_t index) const;
 
 	};
+
+	/// 連結します
+	Binary operator+(const Binary &l, const Binary &r);
 
 	/// シリアライザクラスです
 	class Serializer;
@@ -366,7 +369,7 @@ namespace ElekiEngine
 			}
 		};
 
-		// ポインタをバイナリにシリアライズします
+		// 文字列をバイナリにシリアライズします
 		template<> struct ToBinary<String>
 		{
 			void operator()(Ref<List<u8>> binary, SerializeInfo &info, const String &value)
@@ -376,6 +379,31 @@ namespace ElekiEngine
 				{
 					numberToBinary(binary, value[i]);
 				}
+				binary->add((u8) EBinarySign::END);
+			}
+		};
+
+		// データバイナリをシリアライズバイナリにシリアライズします
+		template<> struct ToBinary<Binary>
+		{
+			void operator()(Ref<List<u8>> binary, SerializeInfo &info, const Binary &value)
+			{
+				size_t size = value.count();
+				size_t index = 0;
+				do
+				{
+					binary->add((u8) EBinarySign::BINARY);
+					size_t length = size > U32_MAX ? U32_MAX : size;
+					size -= length;
+
+					ToBinary<u32>{}(binary, info, length);
+					while(index != 0)
+					{
+						binary->add(value[index]);
+						index++;
+					}
+				}
+				while(size != 0);
 				binary->add((u8) EBinarySign::END);
 			}
 		};
@@ -440,6 +468,43 @@ namespace ElekiEngine
 		_ELEKICORE_SERIALIZATION_KEYWORD_DATANODE(False);
 		_ELEKICORE_SERIALIZATION_KEYWORD_DATANODE(Nil);
 
+		/// 参照データノードタイプの列挙です
+		enum class EReferenceNodeType
+		{
+			INSIDE,  ///< データ内完結参照
+			OUTSIDE  ///< データ外部参照
+		};
+
+		/// 参照データノード構造体です
+		struct ELEKICORE_EXPORT ReferenceDataNode: DataNode
+		{
+			const EReferenceNodeType referenceType; ///< 参照タイプ
+
+			/// コンストラクタです
+			ReferenceDataNode(EReferenceNodeType referenceType);
+
+			/// デストラクタです
+			virtual ~ReferenceDataNode() override;
+		};
+
+		/// 内部参照データノード構造体です
+		struct ELEKICORE_EXPORT InsideReferenceDataNode: ReferenceDataNode
+		{
+			u32 id;
+
+			/// コンストラクタです
+			InsideReferenceDataNode();
+		};
+
+		/// 外部参照データノード構造体です
+		struct ELEKICORE_EXPORT OutsideReferenceDataNode: ReferenceDataNode
+		{
+			String name;
+
+			/// コンストラクタです
+			OutsideReferenceDataNode();
+		};
+
 		/// 配列データノード構造体です
 		struct ELEKICORE_EXPORT ArrayDataNode: DataNode
 		{
@@ -475,6 +540,9 @@ namespace ElekiEngine
 			/// コンストラクタです
 			BinaryDataNode();
 		};
+
+		/// バイナリデータからノードに変換します
+		List<UR<DataNode>> ELEKICORE_EXPORT toDataNode(const UR<List<u8>> &binary);
 
 		/// シリアライズ情報構造体です
 		struct ELEKICORE_EXPORT DeserializeInfo

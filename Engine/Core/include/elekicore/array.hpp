@@ -902,7 +902,7 @@ namespace ElekiEngine
         /// @param equal 一致するとき真を返す関数オブジェクト
         /// @param invers 真のとき末尾から、偽のとき先頭から走査します
         /// @param swapLast 真のとき指定位置に末尾を入れます、偽のときは詰めます
-        List<T> &remove(T &&element, const Compare &equal = [](const T &l, const T &r) { return l == r; }, bool invers = false, bool swapLast = false)
+        List<T> &remove(T &&element, const Compare<T> &equal = [](const T &l, const T &r) { return l == r; }, bool invers = false, bool swapLast = false)
         {
             size_t index = indexOf(element, equal, invers);
             if(index != mCount) removeAt(index, swapLast);
