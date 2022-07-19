@@ -1,105 +1,96 @@
-#include "..\..\include\elekicore\serialization.hpp"
-#include "..\..\include\elekicore\serialization.hpp"
-#include "..\..\include\elekicore\serialization.hpp"
-#include "..\..\include\elekicore\serialization.hpp"
-#include "..\..\include\elekicore\serialization.hpp"
-#include "..\..\include\elekicore\serialization.hpp"
-#include "..\..\include\elekicore\serialization.hpp"
-#include "..\..\include\elekicore\serialization.hpp"
-#include "..\..\include\elekicore\serialization.hpp"
 #include "elekicore/serialization.hpp"
 
 using namespace ElekiEngine;
 
-// ƒRƒ“ƒXƒgƒ‰ƒNƒ^
-// @param count ‰Šú—v‘f”
-// @param allocator g—p‚·‚éƒAƒƒP[ƒ^
+// ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
+// @param count åˆæœŸè¦ç´ æ•°
+// @param allocator ä½¿ç”¨ã™ã‚‹ã‚¢ãƒ­ã‚±ãƒ¼ã‚¿
 ElekiEngine::Binary::Binary(size_t count, IAllocator *allocator = Memory::allocator())
 	: List<u8>(count, allocator)
 {}
 
-// ƒRƒ“ƒXƒgƒ‰ƒNƒ^
-// @param allocator g—p‚·‚éƒAƒƒP[ƒ^
+// ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
+// @param allocator ä½¿ç”¨ã™ã‚‹ã‚¢ãƒ­ã‚±ãƒ¼ã‚¿
 ElekiEngine::Binary::Binary(IAllocator *allocator = Memory::allocator())
 	: List<u8>(allocator)
 {}
 
-// ƒRƒ“ƒXƒgƒ‰ƒNƒ^
-// @param list ‰Šú‰»ƒŠƒXƒg
-// @param allocator g—p‚·‚éƒAƒƒP[ƒ^
+// ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
+// @param list åˆæœŸåŒ–ãƒªã‚¹ãƒˆ
+// @param allocator ä½¿ç”¨ã™ã‚‹ã‚¢ãƒ­ã‚±ãƒ¼ã‚¿
 ElekiEngine::Binary::Binary(std::initializer_list<u8> list, IAllocator *allocator = Memory::allocator())
 	: List<u8>(list, allocator)
 {}
 
-// ƒRƒs[ƒRƒ“ƒXƒgƒ‰ƒNƒ^
+// ã‚³ãƒ”ãƒ¼ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
 ElekiEngine::Binary::Binary(const Binary &binary)
 	: List<u8>(binary)
 {}
 
-// ƒ€[ƒuƒRƒ“ƒXƒgƒ‰ƒNƒ^
+// ãƒ ãƒ¼ãƒ–ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
 ElekiEngine::Binary::Binary(Binary &&binary) noexcept
 	: List<u8>(binary)
 {}
 
-// ƒ€[ƒuƒRƒ“ƒXƒgƒ‰ƒNƒ^
+// ãƒ ãƒ¼ãƒ–ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
 ElekiEngine::Binary::~Binary()
 {}
 
-// ƒRƒs[‘ã“ü‚µ‚Ü‚·
+// ã‚³ãƒ”ãƒ¼ä»£å…¥ã—ã¾ã™
 Binary &ElekiEngine::Binary::operator=(const Binary & binary)
 {
 	List<u8>::operator=(binary);
 	return *this;
 }
 
-// ƒ€[ƒu‘ã“ü‚µ‚Ü‚·
+// ãƒ ãƒ¼ãƒ–ä»£å…¥ã—ã¾ã™
 Binary &ElekiEngine::Binary::operator=(Binary &&binary) noexcept
 {
 	List<u8>::operator=(binary);
 	return *this;
 }
 
-// ––”ö‚É’Ç‰Á‚µ‚Ü‚·
+// æœ«å°¾ã«è¿½åŠ ã—ã¾ã™
 Binary &ElekiEngine::Binary::operator+=(const Binary &binary)
 {
 	List<u8>::operator+=(binary);
 	return *this;
 }
 
-// ––”ö‚É’Ç‰Á‚µ‚Ü‚·
+// æœ«å°¾ã«è¿½åŠ ã—ã¾ã™
 Binary &ElekiEngine::Binary::operator+=(Binary &&binary) noexcept
 {
 	List<u8>::operator+=(binary);
 	return *this;
 }
 
-// ––”ö‚É’Ç‰Á‚µ‚Ü‚·
+// æœ«å°¾ã«è¿½åŠ ã—ã¾ã™
 Binary &ElekiEngine::Binary::operator+=(const u8 &element)
 {
 	List<u8>::operator+=(element);
 	return *this;
 }
 
-// ––”ö‚É’Ç‰Á‚µ‚Ü‚·
+// æœ«å°¾ã«è¿½åŠ ã—ã¾ã™
 Binary &ElekiEngine::Binary::operator+=(u8 &&element) noexcept
 {
 	List<u8>::operator+=(element);
 	return *this;
 }
 
-// “Y‚¦š‚©‚ç—v‘f‚ÉƒAƒNƒZƒX‚µ‚Ü‚·
+// æ·»ãˆå­—ã‹ã‚‰è¦ç´ ã«ã‚¢ã‚¯ã‚»ã‚¹ã—ã¾ã™
 u8 &ElekiEngine::Binary::operator[](size_t index)
 {
 	return List<u8>::operator[](index);
 }
 
-// “Y‚¦š‚©‚ç—v‘f‚ÉƒAƒNƒZƒX‚µ‚Ü‚·
+// æ·»ãˆå­—ã‹ã‚‰è¦ç´ ã«ã‚¢ã‚¯ã‚»ã‚¹ã—ã¾ã™
 const u8 &ElekiEngine::Binary::operator[](size_t index) const
 {
 	return List<u8>::operator[](index);
 }
 
-// ˜AŒ‹‚µ‚Ü‚·
+// é€£çµã—ã¾ã™
 Binary ElekiEngine::operator+(const Binary &l, const Binary &r)
 {
 	return Binary(l) += r;
@@ -108,29 +99,29 @@ Binary ElekiEngine::operator+(const Binary &l, const Binary &r)
 const ElekiEngine::String ElekiEngine::Serialization::BinaryInformation::NAME = TXT("ELEKIBINARY");
 
 //
-// ƒVƒŠƒAƒ‰ƒCƒY
+// ã‚·ãƒªã‚¢ãƒ©ã‚¤ã‚º
 // -----
 
-// ƒRƒ“ƒXƒgƒ‰ƒNƒ^‚Å‚·
+// ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿ã§ã™
 ElekiEngine::Serializer::Serializer(Ref<List<u8>> binary, Serialization::SerializeInfo *info)
 	: mBinary(binary)
 	, mInfo(info)
 {}
 
 //
-// ƒfƒVƒŠƒAƒ‰ƒCƒY
+// ãƒ‡ã‚·ãƒªã‚¢ãƒ©ã‚¤ã‚º
 // -----
 
-// ƒRƒ“ƒXƒgƒ‰ƒNƒ^‚Å‚·
+// ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿ã§ã™
 ElekiEngine::Serialization::DataNode::DataNode(EBinarySign type)
 	: type(type)
 {}
 
-// ƒfƒXƒgƒ‰ƒNƒ^‚Å‚·
+// ãƒ‡ã‚¹ãƒˆãƒ©ã‚¯ã‚¿ã§ã™
 ElekiEngine::Serialization::DataNode::~DataNode()
 {}
 
-// ƒfƒVƒŠƒAƒ‰ƒCƒY—pƒm[ƒh\‘¢‘Ì‚ÌƒRƒ“ƒXƒgƒ‰ƒNƒ^‚ğì¬‚·‚éƒ}ƒNƒ‚Å‚·
+// ãƒ‡ã‚·ãƒªã‚¢ãƒ©ã‚¤ã‚ºç”¨ãƒãƒ¼ãƒ‰æ§‹é€ ä½“ã®ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿ã‚’ä½œæˆã™ã‚‹ãƒã‚¯ãƒ­ã§ã™
 #define _ELEKICORE_SERIALIZATION_DATANODE_CONSTRUCTER(N, S) \
 ElekiEngine::Serialization::N##DataNode::N##DataNode()      \
 	: DataNode(EBinarySign::S)                              \
@@ -148,19 +139,19 @@ _ELEKICORE_SERIALIZATION_DATANODE_CONSTRUCTER(F64, F64);
 _ELEKICORE_SERIALIZATION_DATANODE_CONSTRUCTER(True, TRUE);
 _ELEKICORE_SERIALIZATION_DATANODE_CONSTRUCTER(False, FALSE);
 _ELEKICORE_SERIALIZATION_DATANODE_CONSTRUCTER(Nil, NIL);
-// ƒRƒ“ƒXƒgƒ‰ƒNƒ^‚Å‚·
+// ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿ã§ã™
 ElekiEngine::Serialization::ReferenceDataNode::ReferenceDataNode(EReferenceNodeType referenceType)
 	: DataNode(EBinarySign::REFERENCE)
 	, referenceType(referenceType)
 {}
-// ƒfƒXƒgƒ‰ƒNƒ^‚Å‚·
+// ãƒ‡ã‚¹ãƒˆãƒ©ã‚¯ã‚¿ã§ã™
 ElekiEngine::Serialization::ReferenceDataNode::~ReferenceDataNode()
 {}
-// ƒRƒ“ƒXƒgƒ‰ƒNƒ^‚Å‚·
+// ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿ã§ã™
 ElekiEngine::Serialization::InsideReferenceDataNode::InsideReferenceDataNode()
 	: ReferenceDataNode(EReferenceNodeType::INSIDE)
 {}
-// ƒRƒ“ƒXƒgƒ‰ƒNƒ^‚Å‚·
+// ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿ã§ã™
 ElekiEngine::Serialization::OutsideReferenceDataNode::OutsideReferenceDataNode()
 	: ReferenceDataNode(EReferenceNodeType::OUTSIDE)
 {}
@@ -171,7 +162,7 @@ _ELEKICORE_SERIALIZATION_DATANODE_CONSTRUCTER(Binary, BINARY);
 
 
 //
-// ƒf[ƒ^‚©‚çƒm[ƒh‚É•ÏŠ·
+// ãƒ‡ãƒ¼ã‚¿ã‹ã‚‰ãƒãƒ¼ãƒ‰ã«å¤‰æ›
 // -----
 
 template<class T, size_t SIZE = sizeof(T)>
@@ -198,16 +189,16 @@ T readBinaryNumber(const Ref<List<u8>> &binary, size_t index)
 bool isElekiBinary(const UR<List<u8>> &binary)
 {
 	size_t i = 0;
-	// Œ`®–¼‚ğ”äŠr
+	// å½¢å¼åã‚’æ¯”è¼ƒ
 	for(; i < Serialization::BinaryInformation::NAME.count(); i++)
 	{
 		if(Serialization::BinaryInformation::NAME[i] != (Char) binary->at(i)) return;
 	}
-	// ƒo[ƒWƒ‡ƒ“‚ğ”äŠr
+	// ãƒãƒ¼ã‚¸ãƒ§ãƒ³ã‚’æ¯”è¼ƒ
 	return Serialization::BinaryInformation::VERSION == readBinaryNumber<u32>(binary, i);
 }
 
-// ƒoƒCƒiƒŠƒf[ƒ^‚©‚çƒm[ƒh‚É•ÏŠ·‚µ‚Ü‚·
+// ãƒã‚¤ãƒŠãƒªãƒ‡ãƒ¼ã‚¿ã‹ã‚‰ãƒãƒ¼ãƒ‰ã«å¤‰æ›ã—ã¾ã™
 List<UR<Serialization::DataNode>> ElekiEngine::Serialization::toDataNode(const UR<List<u8>> &binary)
 {
 	if(!isElekiBinary(binary)) return List<UR<Serialization::DataNode>>();
