@@ -549,7 +549,15 @@ namespace ElekiEngine
 		{
 
 			Map<String, void *> namedPtrMap; ///< 名前付き外部ポインタのマップ
+			List<void *> insidePtrs;
 
+		};
+		
+		/// バイナリデータノードからデシリアライズします
+		template<class T>
+		struct FromBinary
+		{
+			void operator()(UR<DataNode> &node, DeserializeInfo &info, T &value);
 		};
 	}
 
