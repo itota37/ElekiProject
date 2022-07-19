@@ -351,6 +351,7 @@ namespace ElekiEngine
 			}                                                                      \
 		};  
 		_ELEKICORE_SERIALIZATION_ARRAY_TO_BINARY(class T COMMA size_t N, T[N], const T(&value)[N], &value[0], &value[N]);
+		_ELEKICORE_SERIALIZATION_ARRAY_TO_BINARY(class T COMMA size_t N, Array<T COMMA N>, const Array<T COMMA N> &value, value.begin(), value.end());
 		_ELEKICORE_SERIALIZATION_ARRAY_TO_BINARY(class T, List<T>, const List<T> &value, value.begin(), value.end());
 		_ELEKICORE_SERIALIZATION_ARRAY_TO_BINARY(class T, Set<T>, const Set<T> &value, value.begin(), value.end());
 		_ELEKICORE_SERIALIZATION_ARRAY_TO_BINARY(class K COMMA class V, Map<K COMMA V>, const Map<K COMMA V> &value, value.begin(), value.end());
@@ -561,16 +562,16 @@ namespace ElekiEngine
 		};
 		
 		// バイナリデータノードを数値にデシリアライズする特殊化クラスを作成するマクロです
-		#define _ELEKICORE_SERIALIZATION_NUMBER_FROM_BINARY(T, SIGN, NAME)           \
-		template<> struct FromBinary<T>                                              \
-		{                                                                            \
+		#define _ELEKICORE_SERIALIZATION_NUMBER_FROM_BINARY(T, SIGN, NAME)       \
+		template<> struct FromBinary<T>                                          \
+		{                                                                        \
 			void operator()(Ref<DataNode> node, DeserializeInfo &info, T &value) \
 			{                                                                    \
-				if(node->type == SIGN)                                       \
-				{                                                            \
-					auto tNode = (Ref<NAME##DataNode>) node;             \
-					value = tNode->value;                                \
-				}                                                            \
+				if(node->type == SIGN)                                           \
+				{                                                                \
+					auto tNode = (Ref<NAME##DataNode>) node;                     \
+					value = tNode->value;                                        \
+				}                                                                \
 			}                                                                    \
 		};
 		_ELEKICORE_SERIALIZATION_NUMBER_FROM_BINARY(i8, EBinarySign::I8, I8);
@@ -635,8 +636,87 @@ namespace ElekiEngine
 			}
 		};
 		
-		/// バイナリデータノードから配列にデシリアライズします
-		//template<class T>
+		#define _ELEKICORE_SERIALIZATION_ARRAY_FROM_BINARY(T, A, V, F)    \
+		template<T> struct FromBinary<A>                                  \
+		{                                                                 \
+			void operator()(Ref<DataNode> node, DeserializeInfo &info, V) \
+			{                                                             \
+				if (node->type == EBinarySign::ARRAY)                     \
+				{                                                         \
+					auto arrayNode = (Ref<ArrayDataNode>) node;           \
+					auto &list = arrayNode->value;                        \
+					F                                                     \
+				}                                                         \
+			}                                                             \
+		};
+		_ELEKICORE_SERIALIZATION_ARRAY_FROM_BINARY(class T COMMA size_t N, T[N], T (&value)[N], 
+												   for(size_t i = 0; i < (N < list.count() ? N : list.count()); i++)
+												   {
+													   FromBinary<T>{}(list[i], info, value[i]);
+												   }
+												  );
+		_ELEKICORE_SERIALIZATION_ARRAY_FROM_BINARY(class T COMMA size_t N, Array<T COMMA N>, Array<T COMMA N> &value, 
+												   for(size_t i = 0; i < (N < list.count() ? N : list.count()); i++)
+												   {
+													   FromBinary<T>{}(list[i], info, value[i]);
+												   }
+												  );
+		#define _ELEKICORE_SERIALIZATION_LIST_FROM_BINARY(T, A, V)                              \
+		_ELEKICORE_SERIALIZATION_ARRAY_FROM_BINARY(T, A, V,                                     \
+												   value.clear();                               \
+												   for(auto &elemNode: list)                    \
+												   {                                            \
+													   char mem[sizeof(T)];                     \
+													   T &tmpRef = *(T*)(void*)mem;             \
+													   FromBinary<T>{}(elemNode, info, tmpRef); \
+													   value.add(tmpRef);                       \
+												   }                                            \
+												  );
+		_ELEKICORE_SERIALIZATION_LIST_FROM_BINARY(class T, List<T>, List<T> &value);
+		_ELEKICORE_SERIALIZATION_LIST_FROM_BINARY(class T, Set<T>, Set<T> &value);
+		_ELEKICORE_SERIALIZATION_LIST_FROM_BINARY(class K COMMA class V, Map<K COMMA V>, Map<K COMMA V> &value);
+		
+		/// バイナリデータノードからペア構造体にデシリアライズします
+		template<class K, class V> struct FromBinary<KeyValuePair<K, V>>
+		{
+			void operator()(Ref<DataNode> node, DeserializeInfo &info, KeyValuePair<K, V> &value)
+			{
+				if (node->type == EBinarySign::STRUCT)
+				{
+					static const String keyName = TXT("key");
+					static const String valueName = TXT("value");
+					auto structNode = (Ref<StructDataNode>) node;
+					if (node->value.contains(keyName)) FromBinary<K>{}(node->value[keyName]);
+					if (node->value.contains(valueName)) FromBinary<K>{}(node->value[valueName]);
+				}
+			}
+		};
+		
+		/// バイナリデータノードから文字列にデシリアライズします
+		template<> struct FromBinary<String>
+		{
+			void operator()(Ref<DataNode> node, DeserializeInfo &info, String &value)
+			{
+				if (node->type == EBinarySign::STRING)
+				{
+					auto strNode = (Ref<StringDataNode>) node;
+					value = strNode->value;
+				}
+			}
+		};
+		
+		/// シリアライズバイナリデータノードからデータバイナリにデシリアライズします
+		template<> struct FromBinary<Binary>
+		{
+			void operator()(Ref<DataNode> node, DeserializeInfo &info, Binary &value)
+			{
+				if (node->type == EBinarySign::BINARY)
+				{
+					auto binaryNode = (Ref<BinaryDataNode>) node;
+					value = binaryNode->value;
+				}
+			}
+		};
 	}
 
 	//
