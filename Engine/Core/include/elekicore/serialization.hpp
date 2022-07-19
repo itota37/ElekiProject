@@ -490,7 +490,7 @@ namespace ElekiEngine
 		/// 内部参照データノード構造体です
 		struct ELEKICORE_EXPORT InsideReferenceDataNode: ReferenceDataNode
 		{
-			u32 id;
+			u32 value;
 
 			/// コンストラクタです
 			InsideReferenceDataNode();
@@ -499,7 +499,7 @@ namespace ElekiEngine
 		/// 外部参照データノード構造体です
 		struct ELEKICORE_EXPORT OutsideReferenceDataNode: ReferenceDataNode
 		{
-			String name;
+			String value;
 
 			/// コンストラクタです
 			OutsideReferenceDataNode();
@@ -549,7 +549,7 @@ namespace ElekiEngine
 		{
 
 			Map<String, void *> namedPtrMap; ///< 名前付き外部ポインタのマップ
-			List<void *> insidePtrs;
+			List<void *> allocatedPtrs;      ///< 確保済みポインタのリスト           !! -- toDataNode内で読み込みこんだサイズをここでも使用したい --
 
 		};
 		
@@ -557,8 +557,86 @@ namespace ElekiEngine
 		template<class T>
 		struct FromBinary
 		{
-			void operator()(UR<DataNode> &node, DeserializeInfo &info, T &value);
+			void operator()(Ref<DataNode> node, DeserializeInfo &info, T &value);
 		};
+		
+		// バイナリデータノードを数値にデシリアライズする特殊化クラスを作成するマクロです
+		#define _ELEKICORE_SERIALIZATION_NUMBER_FROM_BINARY(T, SIGN, NAME)           \
+		template<> struct FromBinary<T>                                              \
+		{                                                                            \
+			void operator()(Ref<DataNode> node, DeserializeInfo &info, T &value) \
+			{                                                                    \
+				if(node->type == SIGN)                                       \
+				{                                                            \
+					auto tNode = (Ref<NAME##DataNode>) node;             \
+					value = tNode->value;                                \
+				}                                                            \
+			}                                                                    \
+		};
+		_ELEKICORE_SERIALIZATION_NUMBER_FROM_BINARY(i8, EBinarySign::I8, I8);
+		_ELEKICORE_SERIALIZATION_NUMBER_FROM_BINARY(u8, EBinarySign::U8, U8);
+		_ELEKICORE_SERIALIZATION_NUMBER_FROM_BINARY(i16, EBinarySign::I16, I16);
+		_ELEKICORE_SERIALIZATION_NUMBER_FROM_BINARY(u16, EBinarySign::U16, U16);
+		_ELEKICORE_SERIALIZATION_NUMBER_FROM_BINARY(i32, EBinarySign::I32, I32);
+		_ELEKICORE_SERIALIZATION_NUMBER_FROM_BINARY(u32, EBinarySign::U32, U32);
+		_ELEKICORE_SERIALIZATION_NUMBER_FROM_BINARY(i64, EBinarySign::I64, I64);
+		_ELEKICORE_SERIALIZATION_NUMBER_FROM_BINARY(u64, EBinarySign::U64, U64);
+		_ELEKICORE_SERIALIZATION_NUMBER_FROM_BINARY(f32, EBinarySign::F32, F32);
+		_ELEKICORE_SERIALIZATION_NUMBER_FROM_BINARY(f64, EBinarySign::F64, F64);
+		
+		/// バイナリデータノードから論理値にデシリアライズします
+		template<> struct FromBinary<bool>
+		{
+			void operator()(Ref<DataNode> node, DeserializeInfo &info, bool &value)
+			{
+				if (node->type == EBinarySign::TRUE) value = true;
+				if (node->type == EBinarySign::FALSE) value = false;
+			}
+		};
+		
+		/// バイナリデータノードから参照にデシリアライズします
+		template<class T> struct FromBinary<T&>
+		{
+			void operator()(Ref<DataNode> node, DeserializeInfo &info, T &value)
+			{
+				if (node->type == EBinarySign::REFERENCE)
+				{
+					auto refNode = (Ref<ReferenceDataNode>) node;
+					if (refNode->referenceType == EReferenceNodeType::INPUT)
+					{
+						auto inRefNode = (Ref<InsideReferenceDataNode>) refNode;
+						value = *(T*)info.allocatedPtrs[inRefNode];
+					}
+					else
+					{
+						auto outRefNode = (Ref<OutsideReferenceDataNode>) refNode;
+						if (info.namedPtrMap.contains(outRefNode->value))
+						{
+							value = *(T*)info.namedPtrMap[outRefNode->value];
+						}
+					}
+				}
+			}
+		};
+		
+		/// バイナリデータノードからポインタにデシリアライズします
+		template<class T> struct FromBinary<T*>
+		{
+			void operator()(Ref<DataNode> node, DeserializeInfo &info, T &value)
+			{
+				if (node->type == EBinarySign::REFERENCE)
+				{
+					FromBinary<T&>{}(node, info, *value);
+				}
+				else
+				{
+					value = nullptr;
+				}
+			}
+		};
+		
+		/// バイナリデータノードから配列にデシリアライズします
+		//template<class T>
 	}
 
 	//
