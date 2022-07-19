@@ -240,6 +240,29 @@ UR<Serialization::DataNode> makeStructDataNode(const UR<List<u8>> &binary, size_
 	return (UR<Serialization::DataNode>)result;
 }
 
+UR<Serialization::DataNode> makeStringDataNode(const UR<List<u8>> &binary, size_t &index)
+{
+	UR<Serialization::StringDataNode> result;
+	result->value = readBinaryString(binary, index);
+	return (UR<Serialization::DataNode>)result;
+}
+
+UR<Serialization::DataNode> makeBinaryDataNode(const UR<List<u8>> &binary, size_t &index)
+{
+	UR<Serialization::BinaryDataNode> result;
+	do
+	{
+		auto length = (size_t) readBinaryNumber(binary, index);
+		for(size_t i = 0; i < length; i++)
+		{
+			result->value.add(binary->at(index + i));
+		}
+		index += length;
+	}
+	while((EBinarySign)binary->at(index) != EBinarySign::END);
+	return (UR<Serialization::DataNode>)result;
+}
+
 UR<Serialization::DataNode> makeDataNode(const UR<List<u8>> &binary, size_t &index)
 {
 	switch((EBinarySign)binary->at(index))
@@ -260,6 +283,8 @@ UR<Serialization::DataNode> makeDataNode(const UR<List<u8>> &binary, size_t &ind
 		case EBinarySign::REFERENCE: return makeReferenceDataNode(binary, ++index);
 		case EBinarySign::ARRAY: return makeArrayDataNode(binary, ++index);
 		case EBinarySign::STRUCT: return makeStructDataNode(binary, ++index);
+		case EBinarySign::STRING: return makeStringDataNode(binary, ++index);
+		case EBinarySign::STRING: return makeBinaryDataNode(binary, ++index);
 		default: return UR<Serialization::DataNode>();
 	}
 }
