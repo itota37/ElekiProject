@@ -137,6 +137,9 @@ namespace ElekiEngine
 		/// デシリアライズします
 		void deserialize(Deserializer &deserializer, T &value);
 	};
+	
+	/// シリアライズ可能アロケータインタフェースです
+	class ISerializableAllocator: public IAllocator, public ISerializable {};
 
 	/// シリアライズ名前空間です
 	namespace Serialization
@@ -342,16 +345,26 @@ namespace ElekiEngine
 		}
 
 		// 配列をバイナリにシリアライズする特殊化クラスを作成するマクロです
-	    #define _ELEKICORE_SERIALIZATION_ARRAY_TO_BINARY(T, A, V, B, E)            \
+	    #define _ELEKICORE_SERIALIZATION_ARRAY_TO_BINARY(T, A, V, F)               \
 		template<T> struct ToBinary<A>                                             \
 		{                                                                          \
 			void operator()(Ref<List<u8>> binary, SerializeInfo &info, V)          \
 			{                                                                      \
-				arrayToBinary(binary, info, B, E);                                 \
+				F                                                                  \
 			}                                                                      \
 		};  
-		_ELEKICORE_SERIALIZATION_ARRAY_TO_BINARY(class T COMMA size_t N, T[N], const T(&value)[N], &value[0], &value[N]);
-		_ELEKICORE_SERIALIZATION_ARRAY_TO_BINARY(class T COMMA size_t N, Array<T COMMA N>, const Array<T COMMA N> &value, value.begin(), value.end());
+		// リストをバイナリにシリアライズする特殊化クラスを作成するマクロです
+	    #define _ELEKICORE_SERIALIZATION_LIST_TO_BINARY(T, A, V, B, E)             \
+		_ELEKICORE_SERIALIZATION_ARRAY_TO_BINARY(T, A, V,                          \
+			binary->add((u8) EBinarySign::STRUCT);                                 \
+			ToBinary<String>{}(binary, info, TXT("allocator"));                    \
+			ToBinary<IAllocator *>{}(binary, info, value/*アロケータ取得*/);                         \  // アロケータが取得できるようにする
+			ToBinary<String>{}(binary, info, TXT("elements"));                     \
+			arrayToBinary(binary, info,  B, E);                                    \
+			binary->add((u8) EBinarySign::END);                                    \
+		);
+		_ELEKICORE_SERIALIZATION_ARRAY_TO_BINARY(class T COMMA size_t N, T[N], const T(&value)[N], arrayToBinary(binary COMMA info COMMA &value[0] COMMA &value[N]););
+		_ELEKICORE_SERIALIZATION_ARRAY_TO_BINARY(class T COMMA size_t N, Array<T COMMA N>, const Array<T COMMA N> &value, arrayToBinary(binary COMMA info COMMA  value.begin() COMMA value.end()););
 		_ELEKICORE_SERIALIZATION_ARRAY_TO_BINARY(class T, List<T>, const List<T> &value, value.begin(), value.end());
 		_ELEKICORE_SERIALIZATION_ARRAY_TO_BINARY(class T, Set<T>, const Set<T> &value, value.begin(), value.end());
 		_ELEKICORE_SERIALIZATION_ARRAY_TO_BINARY(class K COMMA class V, Map<K COMMA V>, const Map<K COMMA V> &value, value.begin(), value.end());
@@ -421,6 +434,16 @@ namespace ElekiEngine
 		struct SerializableToBinary<T, true>
 		{
 			void operator()(Serializer &serializer, const T &value);
+		};
+		
+		// アロケータ情報をバイナリに組み込みますします
+		template<> struct ToBinary<IAllocator *>
+		{
+			void operator()(Ref<List<u8>> binary, SerializeInfo &info, const IAllocator *&value)
+			{
+				auto serializable = dynamic_cast<const ISerializableAllocator *>(value);
+				ToBinary<ISerializableAllocator>{}(binary, info, *serializable);
+			}
 		};
 
 
@@ -715,6 +738,39 @@ namespace ElekiEngine
 					auto binaryNode = (Ref<BinaryDataNode>) node;
 					value = binaryNode->value;
 				}
+			}
+		};
+		
+		/// シリアライズバイナリデータノードからデータバイナリにデシリアライズします
+		template<> struct FromBinary<IAllocator *>
+		{
+			void operator()(Ref<DataNode> node, DeserializeInfo &info, IAllocator *&value)
+			{
+				if (node->type != EBinarySign::REFERENCE)
+				{
+					value = Memory::allocator();
+					return;
+				}
+				
+				auto refNode = (Ref<ReferenceDataNode>) node;
+				if (refNode->referenceType == EReferenceNodeType::OUTSIDE)
+				{
+					auto outRefNode = (Ref<OutsideReferenceDataNode>) refNode;
+					if (!info.namedPtrMap.contains(outRefNode->value))
+					{
+						value = Memory::allocator();
+						return;
+					}
+				}
+				
+				auto serializable = dynamic_cast<ISerializableAllocator *&>(value);
+				if (!serializable)
+				{
+					value = Memory::allocator();
+					return;
+				}
+				
+				FromBinary<ISerializableAllocator&>(node, info, *serializable);
 			}
 		};
 	}
