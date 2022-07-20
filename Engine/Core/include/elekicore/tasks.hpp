@@ -71,8 +71,8 @@ namespace ElekiEngine
 	template<class R>
 	class Task: protected Thread
 	{
-		template<class R> friend UR<Task<R>> parallel(const Func<R()> &func, EThreadMode mode);
-		
+		template<class F> friend auto parallel(const F &func, EThreadMode mode)->UR<Task<decltype(func())>>;
+
 		std::remove_reference_t<R> mResult; // 戻り値
 		Func<R()> mFunc;                    // 実行する関数
 
@@ -117,7 +117,7 @@ namespace ElekiEngine
 	template<>
 	class Task <void>: protected Thread
 	{
-		template<class R> friend UR<Task<R>> parallel(const Func<R()> &func, EThreadMode mode);
+		template<class F> friend auto parallel(const F &func, EThreadMode mode)->UR<Task<decltype(func())>>;
 
 		Func<void()> mFunc; // 実行する関数
 
@@ -160,11 +160,11 @@ namespace ElekiEngine
 	};
 
 	/// 並列処理で実行します
-	template<class R>
-	UR<Task<R>> parallel(const Func<R()> &func, EThreadMode mode = EThreadMode::THREAD_POOL)
+	template<class F>
+	auto parallel(const F &func, EThreadMode mode = EThreadMode::THREAD_POOL)  -> UR<Task<decltype(func())>>
 	{
-		auto ptr = new(Memory::allocate(sizeof(Task<R>))) Task<R>(func);
-		return UR<Task<R>>(ptr, Memory::deleter());
+		auto ptr = new(Memory::allocate(sizeof(Task<decltype(func())>))) Task<decltype(func())>(func);
+		return UR<Task<decltype(func())>>(ptr, Memory::deleter());
 	}
 
 }

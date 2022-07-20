@@ -1,6 +1,7 @@
 #include "elekicore/serialization.hpp"
 
 using namespace ElekiEngine;
+using namespace ElekiEngine::Serialization;
 
 // コンストラクタ
 // @param count 初期要素数
@@ -210,13 +211,13 @@ UR<Serialization::DataNode> makeReferenceDataNode(const UR<List<u8>> &binary, si
 	{
 		UR<Serialization::InsideReferenceDataNode> result;
 		result->value = readBinaryNumber<u32>(binary, ++index);
-		return result;
+		return (UR<Serialization::DataNode>) result;
 	}
 	else
 	{
 		UR<Serialization::OutsideReferenceDataNode> result;
 		result->value = readBinaryString(binary, ++index);
-		return result;
+		return (UR<Serialization::DataNode>) result;
 	}
 }
 
@@ -252,7 +253,7 @@ UR<Serialization::DataNode> makeBinaryDataNode(const UR<List<u8>> &binary, size_
 	UR<Serialization::BinaryDataNode> result;
 	do
 	{
-		auto length = (size_t) readBinaryNumber(binary, index);
+		auto length = (size_t) readBinaryNumber<u32>(binary, index);
 		for(size_t i = 0; i < length; i++)
 		{
 			result->value.add(binary->at(index + i));
@@ -284,7 +285,7 @@ UR<Serialization::DataNode> makeDataNode(const UR<List<u8>> &binary, size_t &ind
 		case EBinarySign::ARRAY: return makeArrayDataNode(binary, ++index);
 		case EBinarySign::STRUCT: return makeStructDataNode(binary, ++index);
 		case EBinarySign::STRING: return makeStringDataNode(binary, ++index);
-		case EBinarySign::STRING: return makeBinaryDataNode(binary, ++index);
+		case EBinarySign::BINARY: return makeBinaryDataNode(binary, ++index);
 		default: return UR<Serialization::DataNode>();
 	}
 }
@@ -324,7 +325,7 @@ List<UR<Serialization::DataNode>> ElekiEngine::Serialization::toDataNode(const U
 	List<UR<Task<UR<Serialization::DataNode>>>> tasks(startPositionList.count());
 	for(size_t i = 0; i < startPositionList.count(); i++)
 	{
-		tasks[i] = parallel([&binary, &startPositionList, i](){ return makeDataNode(binary, startPositionList[i]);});
+		tasks[i] = parallel([&binary, &startPositionList, i](){ return makeDataNode(binary, startPositionList[i]); });
 	}
 	
 	// すべての変換を待ちます

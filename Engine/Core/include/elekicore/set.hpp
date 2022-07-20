@@ -439,6 +439,13 @@ namespace ElekiEngine
         {
             return ConstPointerItr<T>(&mElements[mElements.count()]);
         }
+
+
+        /// アロケータを取得します
+        IAllocator *allocator() const
+        {
+            return mElements.allocator();
+        }
     };
 
     /// 和集合です

@@ -955,6 +955,12 @@ namespace ElekiEngine
         {
             return ConstPointerItr<T>(&mElements[mCount]);
         }
+
+        /// アロケータを取得します
+        IAllocator *allocator() const
+        {
+            return mAllocator;
+        }
     };
 
     /// 連結します

@@ -358,7 +358,7 @@ namespace ElekiEngine
 		_ELEKICORE_SERIALIZATION_ARRAY_TO_BINARY(T, A, V,                          \
 			binary->add((u8) EBinarySign::STRUCT);                                 \
 			ToBinary<String>{}(binary, info, TXT("allocator"));                    \
-			ToBinary<IAllocator *>{}(binary, info, value/*アロケータ取得*/);                         \  // アロケータが取得できるようにする
+			ToBinary<IAllocator *>{}(binary, info, value.allocator());             \
 			ToBinary<String>{}(binary, info, TXT("elements"));                     \
 			arrayToBinary(binary, info,  B, E);                                    \
 			binary->add((u8) EBinarySign::END);                                    \
@@ -559,14 +559,14 @@ namespace ElekiEngine
 		/// バイナリデータノード構造体です
 		struct ELEKICORE_EXPORT BinaryDataNode: DataNode
 		{
-			List<u8> value; ///< ノードの配列です
+			Binary value; ///< ノードの配列です
 
 			/// コンストラクタです
 			BinaryDataNode();
 		};
 
 		/// バイナリデータからノードに変換します
-		List<UR<DataNode>> ELEKICORE_EXPORT toDataNode(const UR<List<u8>> &binary);
+		List<UR<DataNode>> ELEKICORE_EXPORT toDataNode(const UR<Binary> &binary);
 
 		/// シリアライズ情報構造体です
 		struct ELEKICORE_EXPORT DeserializeInfo
@@ -763,7 +763,7 @@ namespace ElekiEngine
 					}
 				}
 				
-				auto serializable = dynamic_cast<ISerializableAllocator *&>(value);
+				auto serializable = dynamic_cast<ISerializableAllocator *>(value);
 				if (!serializable)
 				{
 					value = Memory::allocator();
