@@ -13,7 +13,7 @@
 /// 11 - 15 符号なし4バイト整数、バージョン情報
 /// 
 /// データ部
-/// <サイズ><インスタンスデータ>から構成されるデータの配列です
+/// <型名><サイズ><インスタンスデータ>から構成されるデータの配列です
 /// サイズは符号なし4バイト整数で表現されます
 /// 
 /// インスタンスデータ
@@ -196,11 +196,12 @@ namespace ElekiEngine
 		struct ELEKICORE_EXPORT SerializeInfo
 		{
 
-			Mutex lockFlag;                 ///< 排他フラグ
-			List<UR<List<u8>>> binaryList;    ///< バイナリデータ
-			Map<void *, u32> indexMap;      ///< 参照先がシリアライズされた位置のマップ
-			List<UR<Task<void>>> taskList;  ///< タスクリスト
-			Map<void *, String> ptrNameMap; ///< 名前付き外部ポインタのマップ
+			Mutex lockFlag;                          ///< 排他フラグ
+			List<UR<Binary>> binaryList;             ///< バイナリデータリスト
+			List<String> typenameList;               ///< バイナリに対応する型名リスト
+			Map<void *, u32> indexMap;               ///< 参照先がシリアライズされた位置のマップ
+			List<UR<Task<void>>> taskList;           ///< タスクリスト
+			Map<void *, String> outsideReferenceMap; ///< 名前付き外部ポインタのマップ
 
 		};
 
@@ -208,12 +209,12 @@ namespace ElekiEngine
 		template<class T>
 		struct ToBinary
 		{
-			void operator()(Ref<List<u8>> binary, SerializeInfo &info, const T &value);
+			void operator()(Ref<Binary> binary, SerializeInfo &info, const T &value);
 		};
 
 		/// 数値をバイナリに変換します
 		template<class T, size_t SIZE = sizeof(T)>
-		void numberToBinary(Ref<List<u8>> binary, T number)
+		void numberToBinary(Ref<Binary> binary, T number)
 		{
 			auto bytes = (u8 *) (void *) &number;
 
@@ -237,7 +238,7 @@ namespace ElekiEngine
 		#define _ELEKICORE_SERIALIZATION_NUMBER_TO_BINARY(T, SIGN)              \
 		template<> struct ToBinary<T>                                           \
 		{                                                                       \
-			void operator()(Ref<List<u8>> binary, SerializeInfo &info, T value) \
+			void operator()(Ref<Binary> binary, SerializeInfo &info, T value)   \
 			{                                                                   \
 				binary->add((u8) SIGN);                                         \
 				numberToBinary(binary, value);                                  \
@@ -258,7 +259,7 @@ namespace ElekiEngine
 		// 論理値をバイナリにシリアライズします
 		template<> struct ToBinary<bool>
 		{
-			void operator()(Ref<List<u8>> binary, SerializeInfo &info, bool value)
+			void operator()(Ref<Binary> binary, SerializeInfo &info, bool value)
 			{
 				binary->add((u8) (value ? EBinarySign::TRUE : EBinarySign::FALSE));
 			}
@@ -267,18 +268,18 @@ namespace ElekiEngine
 		// 参照をバイナリにシリアライズします
 		template<class T> struct ToBinary<T&>
 		{
-			void operator()(Ref<List<u8>> binary, SerializeInfo &info, const T & value)
+			void operator()(Ref<Binary> binary, SerializeInfo &info, const T & value)
 			{
-				static const String EMPTY_STRING = TXT("");
-
-				u32 index = 0;                   // 参照先リストのインデクス
-				String name = EMPTY_STRING;      // 名前付きポインタ名
+				u32 index = 0;          // 参照先リストのインデクス
+				String name;            // 名前付きポインタ名
+				bool isOutside = false; // 外部ポインタかの判定結果
 				{
 					Lock lock(info.lockFlag);  
 
-					if(info.ptrNameMap.contains(&value))
+					if(info.outsideReferenceMap.contains(&value))
 					{
-						name = info.ptrNameMap[&value]; // 名前付きポインタの名前を取得
+						isOutside = true;
+						name = info.outsideReferenceMap[&value]; // 名前付きポインタの名前を取得
 					}
 					else if(info.indexMap.contains(&value)) 
 					{
@@ -291,9 +292,10 @@ namespace ElekiEngine
 						info.indexMap.add(&value, index);
 
 						// バイナリデータバッファの追加と登録
-						auto urBinary = newUR<List<u8>>();
-						Ref<List<u8>> refBinary = urBinary;
+						auto urBinary = newUR<Binary>();
+						Ref<Binary> refBinary = urBinary;
 						info.binaryList.add(urBinary);
+						info.typenameList.add(typenameOf(value));
 
 						// 参照先のシリアライズを並列に処理
 						info.taskList.add(parallel([refBinary, &info, &value]() 
@@ -303,7 +305,7 @@ namespace ElekiEngine
 					}
 				}
 				binary->add((u8) EBinarySign::REFERENCE);
-				if(name != EMPTY_STRING)
+				if(isOutside)
 				{
 					// ポインタ名でシリアライズ
 					ToBinary<String>{}(binary, info, name);
@@ -319,7 +321,7 @@ namespace ElekiEngine
 		// ポインタをバイナリにシリアライズします
 		template<class T> struct ToBinary<T *>
 		{
-			void operator()(Ref<List<u8>> binary, SerializeInfo &info, const T *&value)
+			void operator()(Ref<Binary> binary, SerializeInfo &info, const T *&value)
 			{
 				if(value)
 				{
@@ -334,7 +336,7 @@ namespace ElekiEngine
 
 		/// 配列をバイナリに変換します
 		template<class ITR>
-		void arrayToBinary(Ref<List<u8>> binary, SerializeInfo &info, ITR begin, ITR end)
+		void arrayToBinary(Ref<Binary> binary, SerializeInfo &info, ITR begin, ITR end)
 		{
 			binary->add((u8) EBinarySign::ARRAY);
 			for(auto itr = begin; itr != end; itr++)
@@ -348,7 +350,7 @@ namespace ElekiEngine
 	    #define _ELEKICORE_SERIALIZATION_ARRAY_TO_BINARY(T, A, V, F)               \
 		template<T> struct ToBinary<A>                                             \
 		{                                                                          \
-			void operator()(Ref<List<u8>> binary, SerializeInfo &info, V)          \
+			void operator()(Ref<Binary> binary, SerializeInfo &info, V)            \
 			{                                                                      \
 				F                                                                  \
 			}                                                                      \
@@ -372,7 +374,7 @@ namespace ElekiEngine
 		// KeyValuePairをバイナリにシリアライズします
 		template<class K, class V> struct ToBinary<KeyValuePair<K, V>>
 		{
-			void operator()(Ref<List<u8>> binary, SerializeInfo &info, const KeyValuePair<K, V> &value)
+			void operator()(Ref<Binary> binary, SerializeInfo &info, const KeyValuePair<K, V> &value)
 			{
 				binary->add((u8) EBinarySign::STRUCT);
 				ToBinary<String>{}(binary, info, TXT("key"));
@@ -386,7 +388,7 @@ namespace ElekiEngine
 		// 文字列をバイナリにシリアライズします
 		template<> struct ToBinary<String>
 		{
-			void operator()(Ref<List<u8>> binary, SerializeInfo &info, const String &value)
+			void operator()(Ref<Binary> binary, SerializeInfo &info, const String &value)
 			{
 				binary->add((u8) EBinarySign::STRING);
 				for(size_t i = 0; i < value.count(); i++)
@@ -400,7 +402,7 @@ namespace ElekiEngine
 		// データバイナリをシリアライズバイナリにシリアライズします
 		template<> struct ToBinary<Binary>
 		{
-			void operator()(Ref<List<u8>> binary, SerializeInfo &info, const Binary &value)
+			void operator()(Ref<Binary> binary, SerializeInfo &info, const Binary &value)
 			{
 				size_t size = value.count();
 				size_t index = 0;
@@ -439,7 +441,7 @@ namespace ElekiEngine
 		// アロケータ情報をバイナリに組み込みますします
 		template<> struct ToBinary<IAllocator *>
 		{
-			void operator()(Ref<List<u8>> binary, SerializeInfo &info, const IAllocator *&value)
+			void operator()(Ref<Binary> binary, SerializeInfo &info, const IAllocator *&value)
 			{
 				auto serializable = dynamic_cast<const ISerializableAllocator *>(value);
 				ToBinary<ISerializableAllocator>{}(binary, info, *serializable);
@@ -565,8 +567,15 @@ namespace ElekiEngine
 			BinaryDataNode();
 		};
 
+		/// toNode戻り値の1データ構造体です
+		struct ELEKICORE_EXPORT ToNodeResult
+		{
+			UR<DataNode> node; ///< ノード
+			String typeName;   ///< 型名
+		};
+
 		/// バイナリデータからノードに変換します
-		List<UR<DataNode>> ELEKICORE_EXPORT toDataNode(const UR<Binary> &binary);
+		List<ToNodeResult> ELEKICORE_EXPORT toNode(const UR<Binary> &binary);
 
 		/// シリアライズ情報構造体です
 		struct ELEKICORE_EXPORT DeserializeInfo
@@ -626,7 +635,7 @@ namespace ElekiEngine
 				if (node->type == EBinarySign::REFERENCE)
 				{
 					auto refNode = (Ref<ReferenceDataNode>) node;
-					if (refNode->referenceType == EReferenceNodeType::INPUT)
+					if (refNode->referenceType == EReferenceNodeType::INSIDE)
 					{
 						auto inRefNode = (Ref<InsideReferenceDataNode>) refNode;
 						value = *(T*)info.allocatedPtrs[inRefNode];
@@ -756,11 +765,15 @@ namespace ElekiEngine
 				if (refNode->referenceType == EReferenceNodeType::OUTSIDE)
 				{
 					auto outRefNode = (Ref<OutsideReferenceDataNode>) refNode;
-					if (!info.namedPtrMap.contains(outRefNode->value))
+					if(info.namedPtrMap.contains(outRefNode->value))
+					{
+						value = (IAllocator *) info.namedPtrMap[outRefNode->value];
+					}
+					else
 					{
 						value = Memory::allocator();
-						return;
 					}
+					return;
 				}
 				
 				auto serializable = dynamic_cast<ISerializableAllocator *>(value);
@@ -770,7 +783,7 @@ namespace ElekiEngine
 					return;
 				}
 				
-				FromBinary<ISerializableAllocator&>(node, info, *serializable);
+				FromBinary<ISerializableAllocator &>{}(node, info, *serializable);
 			}
 		};
 	}
@@ -786,13 +799,13 @@ namespace ElekiEngine
 	/// シリアライザクラスです
 	class ELEKICORE_EXPORT Serializer
 	{
-		Ref<List<u8>> mBinary;
+		Ref<Binary> mBinary;
 		Serialization::SerializeInfo *mInfo;
 
 	public:
 
 		/// コンストラクタです
-		Serializer(Ref<List<u8>> binary, Serialization::SerializeInfo *info);
+		Serializer(Ref<Binary> binary, Serialization::SerializeInfo *info);
 
 		/// シリアライズします
 		template<class T>
@@ -844,7 +857,7 @@ namespace ElekiEngine
 	}
 
 	template<class T>
-	inline void Serialization::ToBinary<T>::operator()(Ref<List<u8>> binary, Serialization::SerializeInfo &info, const T &value)
+	inline void Serialization::ToBinary<T>::operator()(Ref<Binary> binary, Serialization::SerializeInfo &info, const T &value)
 	{
 		// ISerializable継承クラス、
 		// または、非侵入型Serializable特殊化構造体の
@@ -875,12 +888,12 @@ namespace ElekiEngine
 		Serialization::SerializeInfo info;
 		{
 			// バイナリリストとinfoを作成します
-			Ref<List<u8>> refBinary;
+			Ref<Binary> refBinary;
 			{
-				auto urBinary = newUR<List<u8>>();
+				auto urBinary = newUR<Binary>();
 				refBinary = urBinary;
 				info.binaryList.add(urBinary);
-				info.ptrNameMap = names;
+				info.outsideReferenceMap = names;
 			}
 
 			// インスタンス単位で並列にシリアライズします
@@ -919,6 +932,8 @@ namespace ElekiEngine
 			{
 				tasks[i] = parallel([&info, &startPos, &instanceSize, refBinary, i]()
 				{
+
+					// 型名挿入したい
 
 					Serialization::numberToBinary<InstanceSizeType>(refBinary, instanceSize[i]);
 					for(size_t j = INSTANCE_DATA_SIZE_DATA_SIZE + startPos[i], k = 0; k < instanceSize[i]; j++, k++)

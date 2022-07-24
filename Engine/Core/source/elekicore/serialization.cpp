@@ -167,7 +167,7 @@ _ELEKICORE_SERIALIZATION_DATANODE_CONSTRUCTER(Binary, BINARY);
 // -----
 
 template<class T, size_t SIZE = sizeof(T)>
-T readBinaryNumber(const UR<List<u8>> &binary, size_t &index)
+T readBinaryNumber(const UR<Binary> &binary, size_t &index)
 {
 	T result;
 	auto outBytes = (u8 *) (void *) &result;
@@ -188,24 +188,24 @@ T readBinaryNumber(const UR<List<u8>> &binary, size_t &index)
 	return result;
 }
 
-String readBinaryString(const UR<List<u8>> &binary, size_t &index)
+String readBinaryString(const UR<Binary> &binary, size_t &index)
 {
 	String result = (Char*)&binary->at(index);
 	index += result.count();
 	return result;
 }
 
-UR<Serialization::DataNode> makeDataNode(const UR<List<u8>> &binary, size_t &index);
+UR<Serialization::DataNode> makeDataNode(const UR<Binary> &binary, size_t &index);
 
 template<class T, class D>
-UR<Serialization::DataNode> makeNumberDataNode(const UR<List<u8>> &binary, size_t &index)
+UR<Serialization::DataNode> makeNumberDataNode(const UR<Binary> &binary, size_t &index)
 {
 	UR<D> result;
 	result->value = readBinaryNumber<T>(binary, index);
 	return (UR<Serialization::DataNode>)result;
 }
 
-UR<Serialization::DataNode> makeReferenceDataNode(const UR<List<u8>> &binary, size_t &index)
+UR<Serialization::DataNode> makeReferenceDataNode(const UR<Binary> &binary, size_t &index)
 {
 	if((EBinarySign)binary->at(index) == EBinarySign::U32)
 	{
@@ -221,7 +221,7 @@ UR<Serialization::DataNode> makeReferenceDataNode(const UR<List<u8>> &binary, si
 	}
 }
 
-UR<Serialization::DataNode> makeArrayDataNode(const UR<List<u8>> &binary, size_t &index)
+UR<Serialization::DataNode> makeArrayDataNode(const UR<Binary> &binary, size_t &index)
 {
 	UR<Serialization::ArrayDataNode> result;
 	while((EBinarySign)binary->at(index) != EBinarySign::END)
@@ -231,7 +231,7 @@ UR<Serialization::DataNode> makeArrayDataNode(const UR<List<u8>> &binary, size_t
 	return (UR<Serialization::DataNode>)result;
 }
 
-UR<Serialization::DataNode> makeStructDataNode(const UR<List<u8>> &binary, size_t &index)
+UR<Serialization::DataNode> makeStructDataNode(const UR<Binary> &binary, size_t &index)
 {
 	UR<Serialization::StructDataNode> result;
 	while((EBinarySign)binary->at(index) != EBinarySign::END)
@@ -241,14 +241,14 @@ UR<Serialization::DataNode> makeStructDataNode(const UR<List<u8>> &binary, size_
 	return (UR<Serialization::DataNode>)result;
 }
 
-UR<Serialization::DataNode> makeStringDataNode(const UR<List<u8>> &binary, size_t &index)
+UR<Serialization::DataNode> makeStringDataNode(const UR<Binary> &binary, size_t &index)
 {
 	UR<Serialization::StringDataNode> result;
 	result->value = readBinaryString(binary, index);
 	return (UR<Serialization::DataNode>)result;
 }
 
-UR<Serialization::DataNode> makeBinaryDataNode(const UR<List<u8>> &binary, size_t &index)
+UR<Serialization::DataNode> makeBinaryDataNode(const UR<Binary> &binary, size_t &index)
 {
 	UR<Serialization::BinaryDataNode> result;
 	do
@@ -264,7 +264,7 @@ UR<Serialization::DataNode> makeBinaryDataNode(const UR<List<u8>> &binary, size_
 	return (UR<Serialization::DataNode>)result;
 }
 
-UR<Serialization::DataNode> makeDataNode(const UR<List<u8>> &binary, size_t &index)
+UR<Serialization::DataNode> makeDataNode(const UR<Binary> &binary, size_t &index)
 {
 	switch((EBinarySign)binary->at(index))
 	{
@@ -290,7 +290,7 @@ UR<Serialization::DataNode> makeDataNode(const UR<List<u8>> &binary, size_t &ind
 	}
 }
 
-bool isElekiBinary(const UR<List<u8>> &binary)
+bool isElekiBinary(const UR<Binary> &binary)
 {
 	size_t i = 0;
 	// 形式名を比較
@@ -302,34 +302,42 @@ bool isElekiBinary(const UR<List<u8>> &binary)
 	return Serialization::BinaryInformation::VERSION == readBinaryNumber<u32>(binary, i);
 }
 
-// 並列読み込み開始位置とサイズを取得します
-void readStartPosition(const UR<List<u8>> &binary, List<size_t> &startPositionList)
+// 型名と並列読み込み開始位置を取得します
+void readTypenameAndStartPosition(const UR<Binary> &binary, List<String> &typenameList, List<size_t> &startPositionList)
 {
 	for(size_t i = Serialization::BinaryInformation::SIZE; i < binary->count();i += (size_t) readBinaryNumber<u32>(binary, i))
 	{
+		typenameList.add(readBinaryString(binary, i));
 		startPositionList.add(i);
 	}
 }
 
 // バイナリデータからノードに変換します
-List<UR<Serialization::DataNode>> ElekiEngine::Serialization::toDataNode(const UR<List<u8>> &binary)
+List<Serialization::ToNodeResult> ElekiEngine::Serialization::toNode(const UR<Binary> &binary)
 {
 	// ElekiBinaryかチェックします
-	if(!isElekiBinary(binary)) return List<UR<Serialization::DataNode>>();
+	if(!isElekiBinary(binary)) return List<Serialization::ToNodeResult>();
 	
 	// 並列読み込み開始位置とサイズを取得します
 	List<size_t> startPositionList; 
-	readStartPosition(binary, startPositionList);
+	List<String> typenameList;
+	readTypenameAndStartPosition(binary, typenameList, startPositionList);
 	
 	// 並列にノードへ変換します
-	List<UR<Task<UR<Serialization::DataNode>>>> tasks(startPositionList.count());
+	List<UR<Task<Serialization::ToNodeResult>>> tasks(startPositionList.count());
 	for(size_t i = 0; i < startPositionList.count(); i++)
 	{
-		tasks[i] = parallel([&binary, &startPositionList, i](){ return makeDataNode(binary, startPositionList[i]); });
+		tasks[i] = parallel([&binary, &typenameList, &startPositionList, i]()
+		{
+			Serialization::ToNodeResult result;
+			result.node = makeDataNode(binary, startPositionList[i]);
+			result.typeName = typenameList[i];
+			return result;
+		});
 	}
 	
 	// すべての変換を待ちます
-	List<UR<Serialization::DataNode>> result(tasks.count());
+	List<Serialization::ToNodeResult> result(tasks.count());
 	for(size_t i = 0; i < tasks.count(); i++)
 	{
 		result[i] = tasks[i]->marge();
